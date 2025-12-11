@@ -58,6 +58,15 @@ pub fn encode(
     result
 }
 
+pub fn encode_sequence(
+    image: &mut [Image],
+    location: &Location,
+    format: Option<FileFormat>,
+    modifiers: &Modifiers,
+) -> Result<(), MagickError> {
+    todo!()
+}
+
 fn encode_inner(
     image: &Image,
     location: &Location,

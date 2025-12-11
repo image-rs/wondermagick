@@ -7,7 +7,7 @@ use crate::arg_parsers::{
     parse_numeric_arg, BlurGeometry, CropGeometry, FileFormat, GrayscaleMethod, IdentifyFormat,
     InputFileArg, Location, ResizeGeometry, UnsharpenGeometry,
 };
-use crate::args::{Arg, ArgParseCtx, SignedArg};
+use crate::args::{Arg, ArgParseCtx, ArgSign, SignedArg};
 use crate::decode::decode;
 use crate::image::Image;
 use crate::utils::filename::insert_suffix_before_extension_in_path;
@@ -101,6 +101,12 @@ impl ExecutionPlan {
     ) -> Result<(), ArgParseErr> {
         match signed_arg.arg {
             Arg::AutoOrient => self.add_operation(Operation::AutoOrient),
+            Arg::Adjoin => {
+                self.modifiers.adjoin = match signed_arg.sign {
+                    ArgSign::Plus => true,
+                    ArgSign::Minus => false,
+                };
+            }
             Arg::Crop => {
                 self.add_operation(Operation::Crop(CropGeometry::try_from(value.unwrap())?))
             }
@@ -266,14 +272,39 @@ impl ExecutionPlan {
                 }
                 ExecutionStep::Write(location, format) => {
                     let output_locations = Self::output_locations(location, &sequence);
-                    for (image, specific_location) in sequence.iter_mut().zip(output_locations) {
-                        encode::encode(image, &specific_location, *format, &self.modifiers)?;
+
+                    if self.use_sequence_format(location, *format) {
+                        encode::encode_sequence(&mut sequence, location, *format, &self.modifiers)?;
+                    } else {
+                        for (image, specific_location) in sequence.iter_mut().zip(output_locations)
+                        {
+                            encode::encode(image, &specific_location, *format, &self.modifiers)?;
+                        }
                     }
                 }
             }
         }
 
         Ok(())
+    }
+
+    fn use_sequence_format(&self, location: &Location, format: Option<FileFormat>) -> bool {
+        // We did not encounter a +adjoin modifier.
+        !self.modifiers.adjoin
+        // The output does allow multiple image files.
+        && match format {
+            Some(FileFormat::Format(fmt)) => matches!(
+                fmt,
+                image::ImageFormat::Gif
+                    | image::ImageFormat::Tiff
+                    | image::ImageFormat::WebP
+                    | image::ImageFormat::Avif
+            ),
+            _ => false,
+        }
+        // The location is not a pattern string. FIXME: we may want to handle pattern
+        // strings as another variant instead of deciding this here.
+        && matches!(location, Location::Path(path) if !path.as_os_str().to_string_lossy().contains("%"))
     }
 
     /// There are actually two ways of encoding a sequence. If the format natively supports
@@ -313,6 +344,8 @@ pub struct Modifiers {
     pub strip: Strip,
     pub identify_format: Option<IdentifyFormat>,
     pub filter: Option<Filter>,
+    /// When encountering a sequence output format, write to single files?
+    pub adjoin: bool,
 }
 
 #[derive(Debug, Default, Copy, Clone)] // bools default to false
