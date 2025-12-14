@@ -64,7 +64,45 @@ pub fn encode_sequence(
     format: Option<FileFormat>,
     modifiers: &Modifiers,
 ) -> Result<(), MagickError> {
-    todo!()
+    let file = match location {
+        // `File::create` automatically truncates (overwrites) the file if it exists.
+        Location::Path(path) => File::create(path)
+            .map_err(|error| wm_err!("unable to open image '{}': {error}", path.display()))?,
+        // Some of the encoders require Seek, which Stdout doesn't implement.
+        // We write to a temporary file and then print out the content at the end.
+        Location::Stdio => wm_try!(tempfile::tempfile()),
+    };
+
+    // Wrap in BufWriter for performance
+    let mut writer = open_writer(location)?;
+
+    match format {
+        #[cfg(feature = "gif")]
+        Some(FileFormat::Format(ImageFormat::Gif)) => {
+            encoders::gif::encode_sequence(image, &mut writer, modifiers)?
+        }
+        #[cfg(feature = "webp")]
+        Some(FileFormat::Format(ImageFormat::WebP)) => {
+            encoders::webp::encode_sequence(image, &mut writer, modifiers)?
+        }
+        #[cfg(feature = "avif")]
+        Some(FileFormat::Format(ImageFormat::Avif)) => {
+            encoders::avif::encode_sequence(image, &mut writer, modifiers)?
+        }
+        #[cfg(feature = "tiff")]
+        Some(FileFormat::Format(ImageFormat::Tiff)) => {
+            encoders::tiff::encode_sequence(image, &mut writer, modifiers)?
+        }
+        _ => {
+            return Err(wm_err!(
+                "encoding image sequences is not supported for the specified format"
+            ))
+        }
+    }
+
+    postprocess(location, writer)?;
+
+    Ok(())
 }
 
 fn encode_inner(
@@ -75,16 +113,7 @@ fn encode_inner(
 ) -> Result<(), MagickError> {
     let format = choose_encoding_format(image, location, format)?;
 
-    let file = match location {
-        // `File::create` automatically truncates (overwrites) the file if it exists.
-        Location::Path(path) => File::create(path)
-            .map_err(|error| wm_err!("unable to open image '{}': {error}", path.display()))?,
-        // Some of the encoders require Seek, which Stdout doesn't implement.
-        // We write to a temporary file and then print out the content at the end.
-        Location::Stdio => wm_try!(tempfile::tempfile()),
-    };
-    // Wrap in BufWriter for performance
-    let mut writer = BufWriter::new(file);
+    let mut writer = open_writer(location)?;
 
     match format {
         // TODO: dedicated encoders for all other formats that have quality settings
@@ -98,11 +127,33 @@ fn encode_inner(
         ImageFormat::Avif => encoders::avif::encode(image, &mut writer, modifiers)?,
         #[cfg(feature = "gif")]
         ImageFormat::Gif => encoders::gif::encode(image, &mut writer, modifiers)?,
+        #[cfg(feature = "tiff")]
+        ImageFormat::Tiff => encoders::tiff::encode(image, &mut writer, modifiers)?,
         // TODO: set the metadata generically on all the abstract formats.
         // Requires https://github.com/image-rs/image/pull/2554 or equivalent.
         _ => wm_try!(optimize_pixel_format(&image.pixels).write_to(&mut writer, format)),
     }
 
+    postprocess(location, writer)?;
+
+    Ok(())
+}
+
+fn open_writer(location: &Location) -> Result<BufWriter<File>, MagickError> {
+    let file = match location {
+        // `File::create` automatically truncates (overwrites) the file if it exists.
+        Location::Path(path) => File::create(path)
+            .map_err(|error| wm_err!("unable to open image '{}': {error}", path.display()))?,
+        // Some of the encoders require Seek, which Stdout doesn't implement.
+        // We write to a temporary file and then print out the content at the end.
+        Location::Stdio => wm_try!(tempfile::tempfile()),
+    };
+
+    // Wrap in BufWriter for performance
+    Ok(BufWriter::new(file))
+}
+
+fn postprocess(location: &Location, mut writer: BufWriter<File>) -> Result<(), MagickError> {
     match location {
         Location::Path(_) => {
             // Flush the buffers to write everything to disk.
@@ -119,7 +170,6 @@ fn encode_inner(
             wm_try!(stdout.flush());
         }
     }
-
     Ok(())
 }
 
