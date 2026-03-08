@@ -467,8 +467,8 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7e94b34463cd6309fdfe9a541f07e8343ffe5738534cbca6845960ec41cc077a"
 dependencies = [
  "fearless_simd",
- "image",
- "moxcms",
+ "image 0.25.9 (git+https://github.com/image-rs/image.git)",
+ "moxcms 0.7.11",
 ]
 
 [[package]]
@@ -480,7 +480,7 @@ checksum = "2304e00983f87ffb38b55b444b5e3b60a884b5d30c0fca7d82fe33449bbe55ea"
 [[package]]
 name = "image"
 version = "0.25.9"
-source = "git+https://github.com/image-rs/image.git#e8a3c0414d162a46dfe2da094c1b91a1009613cb"
+source = "git+https://github.com/image-rs/image?rev=ec3a411746f018ccbb9da67b1fc2cd98729c3a80#ec3a411746f018ccbb9da67b1fc2cd98729c3a80"
 dependencies = [
  "bytemuck",
  "byteorder-lite",
@@ -489,7 +489,7 @@ dependencies = [
  "gif",
  "image-webp",
  "jpeg-encoder",
- "moxcms",
+ "moxcms 0.8.1",
  "num-traits",
  "pic-scale-safe",
  "png",
@@ -503,12 +503,24 @@ dependencies = [
 ]
 
 [[package]]
+name = "image"
+version = "0.25.9"
+source = "git+https://github.com/image-rs/image.git#e8a3c0414d162a46dfe2da094c1b91a1009613cb"
+dependencies = [
+ "bytemuck",
+ "byteorder-lite",
+ "moxcms 0.7.11",
+ "num-traits",
+ "pic-scale-safe",
+]
+
+[[package]]
 name = "image-extras"
 version = "0.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "86d29ba92ef6970a2685cc758b455d190842b8b9e96c865ffd31cdb9954b7548"
 dependencies = [
- "image",
+ "image 0.25.9 (git+https://github.com/image-rs/image.git)",
  "pcx",
  "wbmp",
 ]
@@ -668,7 +680,7 @@ source = "git+https://github.com/tirr-c/jxl-oxide.git#4793a821d1a1893ce9ebd475b2
 dependencies = [
  "brotli-decompressor",
  "bytemuck",
- "image",
+ "image 0.25.9 (git+https://github.com/image-rs/image.git)",
  "jxl-bitstream",
  "jxl-color",
  "jxl-frame",
@@ -678,7 +690,7 @@ dependencies = [
  "jxl-oxide-common",
  "jxl-render",
  "jxl-threadpool",
- "moxcms",
+ "moxcms 0.7.11",
  "tracing",
 ]
 
@@ -836,6 +848,16 @@ name = "moxcms"
 version = "0.7.11"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ac9557c559cd6fc9867e122e20d2cbefc9ca29d80d027a8e39310920ed2f0a97"
+dependencies = [
+ "num-traits",
+ "pxfm",
+]
+
+[[package]]
+name = "moxcms"
+version = "0.8.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "bb85c154ba489f01b25c0d36ae69a87e4a1c73a72631fc6c0eb6dde34a73e44b"
 dependencies = [
  "num-traits",
  "pxfm",
@@ -1493,7 +1515,7 @@ version = "0.3.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c071456adef4aca59bf6a583c46b90ff5eb0b4f758fc347cea81290288f37ce1"
 dependencies = [
- "image",
+ "image 0.25.9 (git+https://github.com/image-rs/image.git)",
  "libwebp-sys",
 ]
 
@@ -1532,7 +1554,7 @@ dependencies = [
  "current_platform",
  "derive-quickcheck-arbitrary",
  "hayro-jpeg2000",
- "image",
+ "image 0.25.9 (git+https://github.com/image-rs/image?rev=ec3a411746f018ccbb9da67b1fc2cd98729c3a80)",
  "image-extras",
  "jxl-oxide",
  "mimalloc",
